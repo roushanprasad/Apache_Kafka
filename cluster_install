@@ -1,0 +1,96 @@
+=================== KAFKA CLUSTER SETUP =========================
+To setup Kafka in a cluster, first we must have the zookeeper cluster setup and running, so please complete that first. 
+Once you are done, proceed with the below steps.
+
+Suppose your -
+Zookeeper Nodes are: 198.168.1.12:2181, 192.168.1.13:2181
+Kafka Standalone Nodes are: 192.168.1.9:9092,192.168.1.15:9092
+
+STEP 1: Now navigate to the kafka root folder of each computer and modify the server.properties in "config" sub folder:
+> cd $KAFKA_HOME
+> gedit config/server.properties
+
+In the server.properties file, 
+1) search the line "zookeeper.connect" and change it to:
+zookeeper.connect=192.168.1.12:2181,192.168.1.13:2181
+
+2) search the line "broker.id" (unique id for each broker node) and change it to:  
+broke.id=1    //(on computer 192.168.1.9)
+broker.id=2   //(on computer 192.168.1.15)
+
+3) search the line "host.name" and change it to 
+host.name=192.168.1.9  //(on computer 192.168.1.9) 
+host.name=192.168.1.15  //(on computer 192.168.1.15)
+If lines are not there then make the entries
+
+4) Make sure that the line 
+port=9092 
+is there and uncommented in the server.properties
+If not there then make the entry, however it'll be there in the file
+
+Save and close the server.properties. 
+---------------------------------------------------------
+STEP 2: Now start the kafka server on each computer.
+>cd $KAFKA_HOME
+> bin/kafka-server-start.sh config/server.properties
+
+At this point, the kafka cluster is set up and running. 
+-----------------------------------------------------------
+STEP 3: VERIFICATION
+We can test the cluster by creating a topic named "v-topic":
+> bin/kakfa-topics.sh --create --zookeeper 192.168.1.12:2181 --partitions 2 --replication-factor 1 --topic v-topic
+
+Please note that the hostname/ip:port passed in above command after zookeeper is that of one of the zookeeper servers only 
+and not the kafka server.
+
+
+Now run the following commands to list the topics in the kafka brokers:
+> bin/kafka-topics.sh --zookeeper 192.168.1.12:2181 --list
+
+Now run the following commands to get a description how the topic "v-topic" is partitioned in each broker:
+> bin/kafka-topics.sh --describe --zookeeper 192.168.1.12:2181 --topic v-topic
+
+To test the producer and consumer interaction, let's start a consoler producer on the computer 192.168.1.9 by running the 
+following command on that computer's terminal:
+> cd $KAFKA_HOME
+> bin/kafka-console-producer.sh --broker-list 192.168.1.9:9092,192.168.1.15:9092 --topic v-topic
+
+Now open a terminal of the other computer 192.168.1.15 and start a console consumer:
+> cd $KAFKA_HOME
+> bin/kafka-console-consumer.sh --zookeeper 192.168.1.12:2181 --topic v-topic --from-beginning
+Here pass any of the zookeeper nodes ip/host:port in the above command unline in the producer command where you pass 
+the ips:port of the brokers
+
+
+Begin to type something in the console producer on 192.168.1.9 terminal and press ENTER, 
+you will see the output displayed in the console consumer on 192.168.1.15 terminal.
+-----------------------------------------------------------------
+NOTE: Not required for Production - Try if only you want it
+Note:
+It is also ok to set up multiple Kafka brokers on the same computer. For example, if we want to have two Kafka brokers running at 
+two different ports on computer 192.168.2.2, say:
+
+192.168.2.2:9092
+192.168.2.2:9093
+
+Now all that we need to do is to duplicate the server.properties after it is updated, and rename it server1.properties in the 
+same "config" folder (note that name is not important, can be anything that make sense). Now in the server1.properties, 
+modify to have the following settings:
+
+broker.id=3
+log.dirs=/var/kafka1-logs
+port=9093
+
+Save and close server1.properties (remember to create the folder /var/kafka1-logs with write permission), 
+open two terminal in 192.168.2.2 and run the following command in the first terminal to start a kafka broker at port 9092:
+> $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties
+
+On the second terminal, run the following command to start a second kafka broker at port 9093:
+> $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server1.properties
+
+Now you will have two kafka brokers running on 192.168.2.2 on two different ports. To include the second broker for the 
+console producer, change its start command to:
+> $KAKFA_HOME/bin/kafka-console-producer.sh --broker-list 
+
+192.168.2.2:9092,192.168.2.2:9093,192.168.2.4:9092 --topic v-topic
+===============================================================================
