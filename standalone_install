@@ -71,5 +71,5 @@ Let's open another terminal and run the console consumer:
 
 Now enter some data in the console producer terminal and you should see the data immediately display in the console consumer terminal.
 
-!!!!!!!!!! COngratulations, You are done !!!!!!
+!!!!!!!!!! COngratulations, You are done !!!!!!!
 ======================================================================================================================
