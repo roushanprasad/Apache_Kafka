@@ -1,0 +1,8 @@
+2018-01-01 21:46:59 DEBUG Sample:9 - Welcome To Sample Project
+2018-01-01 22:09:31 DEBUG ProducerApp:24 - ################ Producer App Stats Starts #############
+2018-01-01 22:09:31 DEBUG ProducerApp:25 - Starting Loop
+2018-01-01 22:09:31 DEBUG ProducerApp:27 - System Time in Milliseconds: 1514824771963
+2018-01-01 22:09:32 DEBUG ProducerApp:35 - Loop Ended
+2018-01-01 22:09:32 DEBUG ProducerApp:37 - System Time in Milliseconds: 1514824772392
+2018-01-01 22:09:32 DEBUG ProducerApp:38 - Time required for publishing was 429 milliseconds
+2018-01-01 22:09:32 DEBUG ProducerApp:39 - ############### Producer App Stats Ends ###################
