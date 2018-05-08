@@ -1,0 +1,659 @@
+---------------------------------------- Kafka Scripts --------------------------------------
+========================== kf_pre_ins.sh ===========================================
+#!/bin/sh
+#This is kf_pre_inst.sh script.
+#This script checks for existing installation and proceeds
+#to force installation or not accordingly.
+
+echo "############## KAFKA PRE INSTALLATION ############"
+
+############ INCLUDES #######################################
+source /appl/scripts/variables.sh
+
+##################### Variables ##########################
+loc_kf_ver=$chk_kf_version
+
+#---------------- Force Installation ---------------------
+if [ "$1" == 1 ]; then
+        echo "--------- Initiating Force Installation ------------"
+        var_path=()
+        var_path+=`find $base_dir -name $loc_kf_ver -type d | grep '.*'`
+        var_cmd=$?
+
+        echo "Command Output: $var_cmd"
+        #-------- Checking if Installation Found ---------
+
+        #-------- Exisitng Installtion Found -------------
+        if [ $var_cmd == 0 ]; then
+                echo "Existing Installation Found at:"
+                echo $var_path
+                echo "Force Installation Instructions Provided"
+
+                echo "Stopping Kafka Server if any running"
+                #-------- Stopping Kafka for each Existing Installtion-----
+                for i in "${var_path[@]}"
+                do
+                        temp_var=$i
+                        echo "$temp_var"
+			echo "------ Stopping all Kafka Servers-----"
+                        for word in $temp_var
+                        do
+                                echo $word
+                                loc_temp="$word"
+                                cd $loc_temp
+                                echo "Current Working Directory:"
+                                pwd
+
+                                sh bin/kafka-server-stop.sh config/server.properties
+                        done
+                done
+                #--------------------------------------------------------------
+
+                echo "Starting Installation at mentioned directory..."
+                exit 0
+        fi
+
+	#------- Existiing Installtion Not Found -------
+        if [ $var_cmd == 1 ]; then
+                echo "Existing Installation Not Found"
+                echo "Continue Installation..."
+                exit 0
+        fi
+fi
+
+#---------------- No Force Installation ---------------------
+if [ "$1" == 0 ]; then
+        echo "---------- No Force Installation ----------------"
+        var_path2=()
+        var_path2+=`find $base_dir -name $loc_kf_ver -type d | grep '.*'`
+        var_cmd2=$?
+
+        echo "Command Output: $var_cmd2"
+
+        #-------- Checking For Existing Installation ------"
+        if [ $var_cmd2 == 0 ]; then
+                echo "Existing Installation Found at: "
+                echo $var_path2
+                echo "No Force Installation Instruction Provided"
+                echo "Exiting the Installation Process..."
+                exit 1
+        fi
+
+        if [ $var_cmd2 == 1 ]; then
+                echo "Existing Installation Not Found"
+                echo "Continue Installation..."
+                exit 0
+        fi
+fi
+echo "After Exit Check"
+exit 0
+
+============================ kf_start.sh ========================================
+#!/bin/sh
+# This is Apache Kafka Server Start Script
+# Script is kf_start.sh
+# This script automatically starts apache kafka server
+# on one node
+
+echo "========================="
+echo "Starting Apache Kafka"
+echo "========================="
+
+################# INCLUDES #################################
+source /appl/scripts/variables.sh
+
+################ VARIABLES #################################
+spin="$scripts_dir/$name_spinner_script"
+loc_kafka_ins_dir="$kafka_dir/$name_kafka_install_dir"
+loc_kafka_bin_dir="$loc_kafka_ins_dir/bin"
+loc_kafka_conf_dir="$loc_kafka_ins_dir/config"
+loc_kafka_start_logs="$kafka_srvr_logs_dir/$name_kafka_srvr_start_logs"
+
+############### Functions ##################################
+#_stat Function checks if the command has been executed
+#successfully or not
+_stat(){
+	if [ $1 -ne 0 ]; then
+        	echo "FAILED::: Could not complete the action: $2"
+		exit 1
+	else
+        	echo "Successfully Performed the action: $2"
+	fi
+}
+
+_srvr_stat(){
+        if [ $1 -ne 0 ]; then
+                echo "FAILED::: Could not complete the action: $2"
+                echo "$3"
+        else
+                echo "Successfully Performed the action: $2"
+                echo "$4"
+                exit 1
+        fi
+}
+
+############# Start Apache Kafka Server ########################
+echo "Starting Kafka Server"
+
+echo "Traversing kafka..."
+cd $loc_kafka_ins_dir
+_stat $? TRAVERSING_TO_KAFKA_INSTALLATION_DIR
+
+echo "Initiating Script..."
+sh $loc_kafka_bin_dir/kafka-server-start.sh $loc_kafka_conf_dir/server.properties
+_stat $? STARTING_KAFKA_SERVER
+
+echo "KAFKA SERVICE STARTED SUCCESSFULLY"
+exit 0
+
+========================= kf_stop.sh ===============================================
+#!/bin/sh
+# This is Apache Kafka Server Stop Script
+# Script is kf_stop.sh
+# This script automatically stops apache kafka server
+# on one node
+
+echo "========================="
+echo "Stop Apache Kafka"
+echo "========================="
+
+################# INCLUDES #################################
+source /appl/scripts/variables.sh
+
+################ VARIABLES #################################
+spin="$scripts_dir/$name_spinner_script"
+loc_kafka_ins_dir="$kafka_dir/$name_kafka_install_dir"
+loc_kafka_bin_dir="$loc_kafka_ins_dir/bin"
+loc_kafka_conf_dir="$loc_kafka_ins_dir/config"
+loc_kafka_start_logs="$kafka_srvr_logs_dir/$name_kafka_srvr_start_logs"
+
+############### Functions ##################################
+#_stat Function checks if the command has been executed
+#successfully or not
+_stat(){
+	if [ $1 -ne 0 ]; then
+        	echo "FAILED::: Could not complete the action: $2"
+		exit 1
+	else
+        	echo "Successfully Performed the action: $2"
+	fi
+}
+
+_srvr_stat(){
+        if [ $1 -ne 0 ]; then
+                echo "FAILED::: Could not complete the action: $2"
+                echo "$3"
+        else
+                echo "Successfully Performed the action: $2"
+                echo "$4"
+                exit 1
+        fi
+}
+
+############# Stop Apache Kafka Server ########################
+echo "Stopping Kafka Server"
+
+echo "Traversing kafka..."
+cd $loc_kafka_ins_dir
+_stat $? TRAVERSING_TO_KAFKA_INSTALLATION_DIR
+
+echo "Initiating Script..."
+sh $loc_kafka_bin_dir/kafka-server-stop.sh $loc_kafka_conf_dir/server.properties
+_stat $? STOPPING_KAFKA_SERVER
+
+echo "KAFKA SERVICE STOPPED SUCCESSFULLY"
+exit 0
+
+
+=============================== kf_config.sh =================================
+#!/bin/sh
+# This is kf_config.sh script.
+# This script configures the kafka installation to be
+# started and running on a node.
+echo "#######################################################"
+echo "#                                                     #"
+echo "############### Kafka Configuration # #################"
+echo "#                                                     #"
+echo "#######################################################"
+
+############ INCLUDES #######################################
+source /appl/scripts/variables.sh
+
+############ VARIABLES #############################################
+spin="$scripts_dir/$name_spinner_script"
+loc_kf_ins_dir="$kafka_dir/$name_kafka_install_dir"
+loc_kf_conf_dir="$loc_kf_ins_dir/config"
+
+############ FUNCTIONS #############################################
+#_stat Function checks if the command has been executed successfully
+#or not
+_stat(){
+if [ $1 -ne 0 ]; then
+        echo "FAILED::: Could not complete the action: $2"
+        echo "Exiting Installation Abruptly..."
+        exit 1
+else
+        echo "Successfully Performed the action: $2"
+        ls -lrt
+fi
+}
+
+#File stat Function checks if a file is present in any given directory
+_file_stat(){
+        if [ -e $1 ]; then
+                echo "File: $1 is present in Directory"
+                ls -lrt $1
+        else
+                echo "FAILED::: Could not find the file: $1"
+                echo "Exiting Installation Abruptly..."
+                exit 1
+        fi
+}
+
+########### STEP1:Kafka Configuration File Copy ######################
+echo
+echo "----- Installing Kafka Configuration File -----"
+sh $spin
+
+echo "Current Working Directory is:"
+pwd
+echo "Traversing to Resource Directory"
+cd $res_dir
+_stat $? TRAVERSING_TO_RESOURCE_DIRECTORY
+echo "Current Working Directory is:"
+pwd
+
+echo "Finding the Configuration File"
+_file_stat $name_kf_server_file
+
+echo "Installing the Configuration File to kafka installation folder"
+echo "Destination Directory: $loc_kf_conf_dir"
+cp $name_kf_server_file $loc_kf_conf_dir
+_stat $? INSTALLING_KAFKA_CONFIGURATION_FILE
+echo "----- Kafka Configuration File Installation Successful -----"
+
+echo
+echo "----- Installing Log4J Configuration File -----"
+echo "Finding the Log4j configuration file"
+_file_stat $name_kf_log4j_file
+
+echo "Installing log4j properties file"
+echo "Destination Directory: $loc_kf_conf_dir"
+cp $name_kf_log4j_file $loc_kf_conf_dir
+_stat $? INSTALLING_KAFKA_LOG4J_CONFIGURATION_FILE
+echo "----- Kafka Log4j Configuration File Installation Successful ----"
+
+########### STEP2: Verifying KAFKA Configuration Installation ###########
+echo
+echo "----- Verifying Kafka Configuration Installation -----"
+sh $spin
+
+echo "Traversing to kafka Installation Configuration Directory: $loc_kf_conf_dir"
+cd $loc_kf_conf_dir
+_stat $? TRAVERSE_KAFKA_INSTALLATION_CONFIG_DIRECTORY
+
+echo "Present Working Directory: "
+pwd
+echo "Checking for the installed Config File"
+_file_stat $name_kf_server_file
+
+echo "Checking for the installed log4j config file"
+_file_stat $name_kf_log4j_file
+
+echo "Changing Permission for Configuration File"
+chmod 777 $name_kf_server_file
+_stat $? CHANGING_PERMISSION_FOR_CONFIGURATION_FILE
+
+echo "Changing Permission for Log4j File"
+chmod 777 $name_kf_log4j_file
+echo "------------------ CONFIGURATION VERIFICATION SUCCESSFUL ----------------"
+
+echo "########### KAFKA Configuration Completes Successfully ###########"
+exit 0
+
+====================================== kf_dir_inst.sh =========================
+#!/bin/sh
+#This is zk_dir_inst.sh script
+#This script install the required directory structure for
+#Apache Kafka installation on a single node.
+echo "#############################################################"
+echo "#                                                           #"
+echo "############### KAFKA Directory Structure Setup     #########"
+echo "#                                                           #"
+echo "#############################################################"
+
+############ INCLUDES #############################################
+source /appl/scripts/variables.sh
+
+############ VARIABLES #############################################
+spin="$scripts_dir/$name_spinner_script"
+
+############ FUNCTIONS #############################################
+#_stat Function checks if the command has been executed successfully
+#or not
+_stat(){
+if [ $1 -ne 0 ]; then
+        echo "FAILED::: Could not complete the action: $2"
+        echo "Exiting Installation Abruptly..."
+        exit 1
+else
+        echo "Successfully Performed the action: $2"
+        ls -lrt
+fi
+}
+
+#_dir_stat Function checks if directory exists, if yes return 2, else 1
+_dir_stat(){
+if [ -d $1 ]; then
+        echo "-----------------------------------------------------"
+        echo "Directory: $1, already exists....."
+        echo "-----------------------------------------------------"
+	return 2
+else
+        echo "Directory does not exist, proceed with installation"
+	return 1
+fi
+}
+
+#_dir_mk Function Creates a directory
+_dir_mk(){
+        echo "$2"
+        mkdir $1
+        _stat $? $2
+}
+
+############# STEP1: Creating Kafka Directory ###############################
+echo
+echo "----- Installing kafka Directory -----"
+sh $spin
+
+echo "Changing to Apps Directory"
+cd $app_base_dir
+_stat $? Changing_To_Apps_Directory
+echo "Current Working Directory is:"
+pwd
+
+echo "Checking for existing kafka directory, if any"
+_dir_stat $kafka_dir
+
+if [ $? == 2 ]; then
+	echo "Kafka Installtion Directory Already Present"
+else
+	_dir_mk $kafka_dir INSTALLING_KAFKA_INSTALLATION_DIRECTORY
+	echo "----- Successfully Installed Kafka Installation Directory -----"
+fi
+
+########### STEP2: Creating Kafka Data Directory ##########################
+echo
+echo "----Installing Kafka Data Directory----"
+sh $spin
+
+echo "Changing Current Working Directory to Data Base Directory"
+cd $data_base_dir
+_stat $? Changing_To_Data_Base_Directory
+echo "Current Working Directory is:"
+pwd
+
+echo "Checking if Kafka data directory already exists"
+_dir_stat $kafka_logs_dir
+
+if [ $? == 2 ]; then
+	echo "Kafka Data Directory Already Exists"
+else
+	_dir_mk $kafka_logs_dir INSTALLING_KAFKA_DATA_DIRECTORY
+	echo "----- Succeessfully Installed Kafka Data Directory -----"
+fi
+
+########### STEP3: Creating Kafka Logs Directory ##########################
+echo
+echo "----Installing Kafka Logs Directory----"
+sh $spin
+
+echo "Changing Current Working Directory to Logs Base Directory"
+cd $log_base_dir
+_stat $? Changing_To_Logs_Base_Directory
+
+echo "Checking if kafka logs directory already exists"
+_dir_stat $kafka_srvr_logs_dir
+
+if [ $? == 2 ]; then
+        echo "Kafka Logs Directory Already Exists"
+else
+        _dir_mk $kafka_srvr_logs_dir INSTALLING_KAFKA_LOGS_DIRECTORY
+        echo "----- Successfully Installed Logs Directory -----"
+fi
+
+echo "############### KAFKA DIRECTORY STRUCTURE SETUP SUCCESSFULLY ###########"
+exit 0
+
+============================================= kf_extract.sh ==========================
+#!/bin/sh
+# This is kf_extarct.sh script.
+# This script extracts the kafka tarball to the
+# destination installation directory on a single node.
+echo "#######################################################"
+echo "#                                                     #"
+echo "################  Kafka Extraction  ###################
+echo "#                                                     #"
+echo "#######################################################"
+
+############ INCLUDES #######################################
+source /appl/scripts/variables.sh
+
+############ VARIABLES #############################################
+spin="$scripts_dir/$name_spinner_script"
+tarball="$res_dir/$name_kafka_tarball"
+ext_logs="$script_logs_dir/script_extract.log"
+loc_kf_ins_dir="$kafka_dir/$name_kafka_install_dir"
+
+############ FUNCTIONS #############################################
+#_stat Function checks if the command has been executed successfully
+#or not
+_stat(){
+if [ $1 -ne 0 ]; then
+        echo "FAILED::: Could not complete the action: $2"
+        echo "Exiting Installation Abruptly..."
+        exit 1
+else
+        echo "Successfully Performed the action: $2"
+        ls -lrt
+fi
+}
+
+#_dir_stat Function checks if directory exists, if yes return 2, else 1
+_dir_stat(){
+if [ -d $1 ]; then
+        echo "-----------------------------------------------------"
+        echo "Directory: $1, already exists....."
+        echo "-----------------------------------------------------"
+        return 2
+else
+        echo "Directory does not exist, proceed with installation"
+        return 1
+fi
+}
+
+#_dir_mk Function Creates a directory
+_dir_mk(){
+        echo "$2"
+        mkdir $1
+        _stat $? $2
+}
+
+########### STEP1: KAFKA TARBALL EXTRACTION ###########################
+echo "----- Finding Kafka tarball -----"
+sh $spin
+
+echo "Traversing to Resource Directory"
+cd $res_dir
+_stat $? Changing_To_Resource_Directory
+
+echo "Inside Resource Directory:"
+pwd
+echo "Finding Kafka Tarball"
+
+if [ -f "$name_kafka_tarball" ]; then
+        echo "Kafka Tar Ball Found: $name_kafka_tarball"
+        ls -lrt kafka*
+else
+        echo "Kafka Tar Ball: $name_kafka_tarball --- not found"
+        echo "Exiting Installation Abruptly..."
+        exit 1
+fi
+
+echo "Kafka Tar Ball Location: $res_dir"
+echo "Present Working Directory is:"
+pwd
+
+echo "Kafka Installation Directory: $kafka_dir"
+echo "----- Installing Kafka -----"
+sh $spin
+
+echo "Checking if the installation already exists..."
+_dir_stat $loc_kf_ins_dir
+
+if [ $? == 2 ]; then
+	echo "Installation Directory Already Exists for given version"
+	echo "....Over-riding Installation..."
+else
+	echo "---- Installation Directory does not exists for given version ----"
+fi
+
+echo "Extracting the kafka tarball to installation directory..."
+#tar -xvzf $tarball --directory=$kafka_dir >> $ext_logs
+tar -xvzf $tarball --directory=$kafka_dir
+
+_stat $? INSTALLING_KAFKA_TO_INSTALLATION_DIRECTORY
+
+############ STEP 2:Verification of Zookeeper Installation #################
+echo
+echo "----- Verifying Kafka Installation -----"
+sh $spin
+
+echo "Current Working Directory is:"
+pwd
+echo "Travesing to Installation Directory....."
+cd $kafka_dir
+_stat $? TRAVERSED_TO_KAFKA_INSTATTION_DIRECTORY
+echo "Current Working Directory is:"
+pwd
+echo "Checking if the installation exists..."
+
+if [ -d "$name_kafka_install_dir" ]; then
+        echo "----------------------------------------------------"
+        echo "Kafka extracted directory exists"
+        ls -lrt
+        echo "----------------------------------------------------"
+else
+        echo "Kafka extracted directory does not exist"
+        ls -lrt
+        echo "Exiting Installation Abruptly..."
+        exit 1
+fi
+
+echo "Changing Permission of the kafka installation directory"
+chmod 777 $name_kafka_install_dir
+_stat $? CHANGING_PERMISSION_ON_KAFKA_INSTALLATION_DIRECTORY
+echo
+echo "VERIFICATION COMPLETES SUCCESSFULLY"
+echo "############### KAFKA INSTALLED SUCCESSFULLY ###############"
+exit 0
+
+================================= kf_install.sh =============================
+#!/bin/sh
+# This is the master script for zookeeper installtion
+# Script is zk_install.sh
+# This script executes all the other scripts sequentially
+# to complete the zookeeper installation in an automated way
+
+echo "======================================="
+echo "    __      _     ___    __     _   "
+echo "   / /__   / \   |      / /__  / \ "
+echo "  /  '_/  / _ \  | ==  /  '_/ / _ \   "
+echo " /_/\_\  /_/ \_\ |_|  /_/\_\ /_/ \_\  version  1.1.0"
+echo "========================================"
+
+############ INCLUDES #######################################
+source /appl/scripts/variables.sh
+
+############ VARIABLES #####################################
+spin="$scripts_dir/$name_spinner_script"
+loc_inst_logs_d="$script_logs_dir/$name_inst_logs.kf.dir"
+loc_inst_logs_e="$script_logs_dir/$name_inst_logs.kf.extract"
+loc_inst_logs_c="$script_logs_dir/$name_inst_logs.kf.config"
+
+########### FUNCTIONS ######################################
+#_stat Function checks if the command has been executed
+#successfully or not
+
+_stat(){
+if [ $1 -ne 0 ]; then
+        echo "FAILED::: Could not complete the action: $2"
+        echo "Exiting Installation Abruptly..."
+        exit 1
+else
+        echo "Successfully Performed the action: $2"
+        ls -lrt
+fi
+}
+echo
+echo "----- Starting The Kafka Installation -----"
+sh $spin
+
+########## PRE INSTALLATION STEP ##########################
+#echo
+#echo "@@@@@@@@@@@@@@@@@@@ Pre-Installation Checks @@@@@@@@@@@@@@@@"
+#sh ./kf_pre_ins.sh $chk_force_install
+#_stat $? KAFKA_PRE_INSTALLATION_CHECKS
+#echo "@@@@@@@@@@@@@@@@@@@ Pre-Installation Checks Successful @@@@@@@@@@@@@@@@@@"
+
+########### STEP1: Directory Structure Creation ############
+echo
+echo "@@@@@@@@@@@@@@@@@@@ Starting The Directory Installation @@@@@@@@@@@@@@@@"
+sh ./kf_dir_inst.sh | tee -a $loc_inst_logs_d
+_stat $? KAFKA_DIRECTORY_INSTALLATION_PROCESS
+echo "@@@@@@@@@@@@@@@@@@@ Directory Installation Successful @@@@@@@@@@@@@@@@@@"
+
+################ STEP2: Kafka Extraction ################
+echo
+echo "@@@@@@@@@@@@@@@@@@@@@ Starting The Kafka Extraction @@@@@@@@@@@@@@@@@@@@@"
+sh ./kf_extract.sh | tee -a $loc_inst_logs_e
+_stat $? KAFKA_EXTRACTION_PROCESS
+echo "@@@@@@@@@@@@@@@@@@@@@ The Kafka Extraction Completes @@@@@@@@@@@@@@@@@@"
+
+################ STEP3: Kafka Configuration Copy ################
+echo
+echo "@@@@@@@@@@@@@@@@@@@ Kafka Configuration Installation @@@@@@@@@@@@@@@@"
+sh ./kf_config.sh | tee -a $loc_inst_logs_c
+_stat $? KAFKA_CONFIGURATION_INSTALLATION_PROCESS
+echo "@@@@@@@@@@@@@@@@@@@ Kafka Configuration Installation Completes @@@@@@@@@@@@@@@@@@"
+echo "############################################################"
+echo "#                                                          #"
+echo "############### INSTALLTION COMPLETES ######################"
+echo "#                                                          #"
+echo "############################################################"
+exit 0
+
+======================================== spinner.sh ================================
+#!/bin/bash
+
+spinner()
+{
+    local pid=$1
+    local delay=0.75
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+(sleep 3) &
+echo -n "Doing something really important, please wait... "
+spinner $!
+echo " DONE"
+
